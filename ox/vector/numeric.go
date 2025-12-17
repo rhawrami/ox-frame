@@ -36,6 +36,10 @@ func (v *NumericVector[T]) Data() []T {
 	return v.data
 }
 
+func (v *NumericVector[T]) ValAt(i int) T {
+	return v.data[i]
+}
+
 func (v *NumericVector[T]) Validity() ValidityBitMap {
 	return v.validity
 }

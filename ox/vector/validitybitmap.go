@@ -53,6 +53,13 @@ func (m ValidityBitMap) CalcNullCount() int {
 	return n
 }
 
+// DeepCopyBuff returns a deep copy of the underlying byte slice
+func (m ValidityBitMap) DeepCopyBuff() []byte {
+	newBuff := make([]byte, m.Len())
+	copy(newBuff, m.Buffer)
+	return newBuff
+}
+
 // ValidityBitMapFromBools returns a new ValidityBitMap, taking in a
 // boolean slice as input.
 func ValidityBitMapFromBools(b []bool) ValidityBitMap {
