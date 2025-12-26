@@ -63,7 +63,7 @@ func concatChunk8Incr(cfg *concatConfig) {
 	for i := cfg.start; i < cfg.end; i++ {
 		newOffset := 0
 		if i != 0 {
-			newOffset = int(cfg.x.Offsets()[i]) + int(cfg.y.Offsets()[i]) + len(cfg.sep)*(i-1)
+			newOffset = int(cfg.x.Offsets()[i]) + int(cfg.y.Offsets()[i]) + len(cfg.sep)*(i)
 		}
 		xD, yD := cfg.x.ValAt(i), cfg.y.ValAt(i)
 
