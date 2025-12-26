@@ -13,7 +13,7 @@ type Numeric interface {
 
 // type NumericVector represents a Numeric Vector
 type NumericVector[T Numeric] struct {
-	DType     dtype.DataType
+	dType     dtype.DataType
 	validity  ValidityBitMap
 	data      []T
 	nullCount int
@@ -21,7 +21,7 @@ type NumericVector[T Numeric] struct {
 }
 
 func (v *NumericVector[T]) Type() dtype.DataType {
-	return v.DType
+	return v.dType
 }
 
 func (v *NumericVector[T]) Len() int {
@@ -60,7 +60,7 @@ func (v *NumericVector[T]) DeepCopy() *NumericVector[T] {
 	copy(newValidMapBuff, v.validity.Buffer)
 
 	return &NumericVector[T]{
-		DType: v.DType,
+		dType: v.dType,
 		validity: ValidityBitMap{
 			TrueLen:   v.len,
 			NullCount: v.nullCount,
@@ -72,26 +72,57 @@ func (v *NumericVector[T]) DeepCopy() *NumericVector[T] {
 	}
 }
 
-// NewNumericVector returns a NumericVector
-func NewNumericVector[T Numeric](data []T, validity []byte) *NumericVector[T] {
-	var dt dtype.DataType
-	switch any(data).(type) {
-	case int, int64:
-		dt = dtype.Int64{}
-	default:
-		dt = dtype.Float64{}
-	}
-
-	vm := ValidityBitMap{
-		TrueLen:   len(data),
-		NullCount: 0,
-		Buffer:    validity,
-	}
+// NumericVecFromComponents returns a NumericVector, given a Datatype, data, ValidityBitMap
+func NumericVecFromComponents[T Numeric](dType dtype.DataType, data []T, validity ValidityBitMap) *NumericVector[T] {
 	return &NumericVector[T]{
-		DType:     dt,
-		validity:  vm,
+		dType:     dType,
+		validity:  validity,
 		data:      data,
-		nullCount: vm.CalcNullCount(),
+		nullCount: validity.NullCount,
 		len:       len(data),
 	}
+}
+
+// NumericVecFromNums returns a NumericVector, given a slice of Numerics and a bool slice representing nulls
+func NumericVecFromNums[T Numeric](data []T, validity []bool) *NumericVector[T] {
+	validMap := ValidityBitMapFromBools(validity)
+	dT := GetNumericDType(data[0])
+	return &NumericVector[T]{
+		dType:     dT,
+		validity:  validMap,
+		data:      data,
+		nullCount: validMap.NullCount,
+		len:       len(data),
+	}
+}
+
+// GetNumericDType returns the Dtype of an element, given the element's native type
+func GetNumericDType[T Numeric](x T) dtype.DataType {
+	var dt dtype.DataType
+
+	switch any(x).(type) {
+	case int, int64:
+		dt = dtype.Int64{}
+	case int32:
+		dt = dtype.Int32{}
+	case int16:
+		dt = dtype.Int16{}
+	case int8:
+		dt = dtype.Int8{}
+	case float64:
+		dt = dtype.Float64{}
+	case float32:
+		dt = dtype.Float32{}
+	case uint64:
+		dt = dtype.UInt64{}
+	case uint32:
+		dt = dtype.UInt32{}
+	case uint16:
+		dt = dtype.UInt16{}
+	case uint8:
+		dt = dtype.UInt8{}
+	default:
+		// non-implemented types
+	}
+	return dt
 }

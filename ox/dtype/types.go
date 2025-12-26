@@ -69,3 +69,10 @@ type Float64 struct{}
 func (x Float64) Type() LogicalType { return FLOAT64 }
 func (x Float64) String() string    { return "float64" }
 func (x Float64) BitsReq() int      { return 64 }
+
+// String represents a string
+type String struct{}
+
+func (x String) Type() LogicalType { return STRING }
+func (x String) String() string    { return "string" }
+func (x String) BitsReq() int      { return -1 } // come back to this
