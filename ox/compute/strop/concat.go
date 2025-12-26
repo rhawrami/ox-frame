@@ -37,7 +37,7 @@ func Concat(x, y *vector.StringVector, sep []byte) *vector.StringVector {
 				sep:        sep,
 			}
 
-			concatChunk8Incr(cfg)
+			concatChunk(cfg)
 		}(i)
 	}
 	wg.Wait()
@@ -59,7 +59,7 @@ func Concat(x, y *vector.StringVector, sep []byte) *vector.StringVector {
 	)
 }
 
-func concatChunk8Incr(cfg *concatConfig) {
+func concatChunk(cfg *concatConfig) {
 	for i := cfg.start; i < cfg.end; i++ {
 		newOffset := int(cfg.x.Offsets()[i]) + int(cfg.y.Offsets()[i]) + len(cfg.sep)*(i)
 		xD, yD := cfg.x.ValAt(i), cfg.y.ValAt(i)
