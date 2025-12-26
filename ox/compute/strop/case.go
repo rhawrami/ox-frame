@@ -15,22 +15,30 @@ const (
 	asciiLowerCaseMax byte = 122
 )
 
+// ToTitleASCII converts elements in a StringVector to title-case; assumes bytes are ASCII
+func ToTitleASCII(x *vector.StringVector) *vector.StringVector {
+	return changeCaseASCII(x, toTitleASCII)
+}
+
+// ToUpperASCII converts elements in a StringVector to upper-case; assumes bytes are ASCII
 func ToUpperASCII(x *vector.StringVector) *vector.StringVector {
 	return changeCaseASCII(x, toUpperASCII)
 }
 
+// ToLowerASCII converts elements in a StringVector to lower-case; assumes bytes are ASCII
 func ToLowerASCII(x *vector.StringVector) *vector.StringVector {
 	return changeCaseASCII(x, toLowerASCII)
 }
 
+// SwapCaseASCII changes the case of each alphabetical byte in a StringVector; assumes bytes are ASCII
 func SwapCaseASCII(x *vector.StringVector) *vector.StringVector {
 	return changeCaseASCII(x, swapCaseASCII)
 }
 
-func changeCaseASCII(x *vector.StringVector, opFn func(cfg caseChangeConfig)) *vector.StringVector {
+func changeCaseASCII(x *vector.StringVector, opFn func(x *vector.StringVector, start, stop int)) *vector.StringVector {
 	newVec := x.DeepCopy()
 
-	chunkSize := len(x.Data()) / compute.NumWorkers
+	chunkSize := compute.NumWorkers / newVec.Len()
 
 	var wg sync.WaitGroup
 	wg.Add(compute.NumWorkers)
@@ -38,18 +46,12 @@ func changeCaseASCII(x *vector.StringVector, opFn func(cfg caseChangeConfig)) *v
 		go func(i int) {
 			defer wg.Done()
 
-			startData, endData := i*chunkSize, i*chunkSize+chunkSize
+			startIdx, endIdx := i*chunkSize, i*chunkSize+chunkSize
 			// handle final chunk
 			if i == compute.NumWorkers-1 {
-				endData = len(x.Data())
+				endIdx = newVec.Len()
 			}
-
-			cfg := caseChangeConfig{
-				outData: newVec.Data(),
-				xData: x.Data(),
-				start: ,
-			}
-			opFn(newVec.Data()[startData:endData])
+			opFn(newVec, startIdx, endIdx)
 		}(i)
 	}
 	wg.Wait()
@@ -57,44 +59,52 @@ func changeCaseASCII(x *vector.StringVector, opFn func(cfg caseChangeConfig)) *v
 	return newVec
 }
 
-type caseChangeConfig struct {
-	outData []byte
-	xData   []byte
-	start   int
-	stop    int
+func toTitleASCII(x *vector.StringVector, start, stop int) {
+	for i := start; i < stop; i++ {
+		toTitleASCIIOneWord(x.Data()[x.Offsets()[i]:x.Offsets()[i+1]])
+	}
 }
 
-func toUpperASCII(cfg *caseChangeConfig) {
-	in := cfg.xData
-	out := cfg.outData
-	for i := 0; i < len(in); i++ {
-		if isLowerASCII(in[i]) {
-			out[i] = in[i] - diffLowerUpper
+func toTitleASCIIOneWord(x []byte) {
+	// first byte to upper
+	if len(x) > 0 && isLowerASCII(x[0]) {
+		x[0] = x[0] - diffLowerUpper
+	}
+	if len(x) <= 1 {
+		return
+	}
+	for i := 1; i < len(x); i++ {
+		if isUpperASCII(x[i]) {
+			x[i] = x[i] + diffLowerUpper
 		}
 	}
 }
 
-func toLowerASCII(cfg *caseChangeConfig) {
-	in := cfg.xData
-	out := cfg.outData
-	for i := 0; i < len(in); i++ {
-		if isLowerASCII(in[i]) {
-			out[i] = in[i] + diffLowerUpper
+func toUpperASCII(x *vector.StringVector, start, stop int) {
+	for i := x.Offsets()[start]; i < x.Offsets()[stop]; i++ {
+		if isLowerASCII(x.Data()[i]) {
+			x.Data()[i] = x.Data()[i] - diffLowerUpper
 		}
 	}
 }
 
-func swapCaseASCII(cfg *caseChangeConfig) {
-	in := cfg.xData
-	out := cfg.outData
-	for i := 0; i < len(in); i++ {
-		ogVal := in[i]
+func toLowerASCII(x *vector.StringVector, start, stop int) {
+	for i := x.Offsets()[start]; i < x.Offsets()[stop]; i++ {
+		if isUpperASCII(x.Data()[i]) {
+			x.Data()[i] = x.Data()[i] + diffLowerUpper
+		}
+	}
+}
+
+func swapCaseASCII(x *vector.StringVector, start, stop int) {
+	for i := x.Offsets()[start]; i < x.Offsets()[stop]; i++ {
+		ogVal := x.Data()[i]
 		if isLowerASCII(ogVal) {
-			out[i] = in[i] - diffLowerUpper
+			x.Data()[i] = x.Data()[i] - diffLowerUpper
 			continue
 		}
 		if isUpperASCII(ogVal) {
-			out[i] = in[i] + diffLowerUpper
+			x.Data()[i] = x.Data()[i] + diffLowerUpper
 		}
 	}
 }
