@@ -35,4 +35,6 @@ const (
 	FLOAT64
 
 	STRING
+
+	DATE
 )

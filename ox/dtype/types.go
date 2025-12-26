@@ -1,5 +1,12 @@
 package dtype
 
+// Bool represents a boolean
+type Bool struct{}
+
+func (x Bool) Type() LogicalType { return BOOL }
+func (x Bool) String() string    { return "bool" }
+func (x Bool) BitsReq() int      { return 1 }
+
 // UInt8 represents an 8-bit unsigned integer
 type UInt8 struct{}
 
@@ -76,3 +83,10 @@ type String struct{}
 func (x String) Type() LogicalType { return STRING }
 func (x String) String() string    { return "string" }
 func (x String) BitsReq() int      { return -1 } // come back to this
+
+// Date represents a date
+type Date struct{}
+
+func (x Date) Type() LogicalType { return DATE }
+func (x Date) String() string    { return "date" }
+func (x Date) BitsReq() int      { return 32 } // come back to this
