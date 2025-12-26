@@ -1,8 +1,9 @@
-package compute
+package numop
 
 import (
 	"sync"
 
+	"github.com/rhawrami/ox-frame/ox/compute"
 	"github.com/rhawrami/ox-frame/ox/vector"
 )
 
@@ -32,14 +33,14 @@ func opVec[T vector.Numeric](x, y *vector.NumericVector[T], opFn func(out, x, y 
 	dataBuff := make([]T, x.Len())
 	validBuff := make([]byte, x.Validity().Len())
 	// break up chunks; make divisible by 8; final chunk will often not equal len of others
-	chunkSize := x.Len() / (NumWorkers * 8) * 8
+	chunkSize := x.Len() / (compute.NumWorkers * 8) * 8
 
 	xData, yData := x.Data(), y.Data()
 	xValid, yValid := x.Validity().Buffer, y.Validity().Buffer
 
 	var wg sync.WaitGroup
-	wg.Add(NumWorkers)
-	for i := 0; i < NumWorkers; i++ {
+	wg.Add(compute.NumWorkers)
+	for i := 0; i < compute.NumWorkers; i++ {
 		// spawn workers
 		go func(i int) {
 			defer wg.Done()
@@ -47,7 +48,7 @@ func opVec[T vector.Numeric](x, y *vector.NumericVector[T], opFn func(out, x, y 
 			startData, endData := i*chunkSize, i*chunkSize+chunkSize
 			startValidity, endValidity := i*chunkSize/8, (i*chunkSize+chunkSize)/8
 			// final chunk may not be div by 8
-			if i == NumWorkers-1 {
+			if i == compute.NumWorkers-1 {
 				endData = x.Len()
 				endValidity = x.Validity().Len()
 			}

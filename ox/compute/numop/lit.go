@@ -1,9 +1,10 @@
-package compute
+package numop
 
 import (
 	"math"
 	"sync"
 
+	"github.com/rhawrami/ox-frame/ox/compute"
 	"github.com/rhawrami/ox-frame/ox/vector"
 )
 
@@ -44,20 +45,20 @@ func opLit[T vector.Numeric](x *vector.NumericVector[T], lit T, opFn func(out, x
 	dataBuff := make([]T, x.Len())
 	validMap := x.Validity().DeepCopy()
 	// break up chunks; make divisible by 8; final chunk will often not equal len of others
-	chunkSize := x.Len() / (NumWorkers * 8) * 8
+	chunkSize := x.Len() / (compute.NumWorkers * 8) * 8
 
 	xData := x.Data()
 
 	var wg sync.WaitGroup
-	wg.Add(NumWorkers)
-	for i := 0; i < NumWorkers; i++ {
+	wg.Add(compute.NumWorkers)
+	for i := 0; i < compute.NumWorkers; i++ {
 		// spawn workers
 		go func(i int) {
 			defer wg.Done()
 
 			startData, endData := i*chunkSize, i*chunkSize+chunkSize
 			// final chunk may not be div by 8
-			if i == NumWorkers-1 {
+			if i == compute.NumWorkers-1 {
 				endData = x.Len()
 			}
 			// parallel vector operation
