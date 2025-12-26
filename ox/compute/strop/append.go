@@ -66,10 +66,8 @@ func appendLit(x *vector.StringVector, lit []byte, opAppend func(cfg appendConfi
 
 func addPrefix(cfg appendConfig) {
 	for i := cfg.start; i < cfg.stop; i++ {
-		newOffset := int(cfg.off0[i]) + (i-1)*len(cfg.lit)
-		if i == 0 {
-			newOffset = 0
-		}
+		newOffset := int(cfg.off0[i]) + (i)*len(cfg.lit)
+
 		newEnd := newOffset + int(cfg.off0[i+1]-cfg.off0[i]) + len(cfg.lit)
 
 		cfg.off1[i] = int64(newOffset)
@@ -81,10 +79,8 @@ func addPrefix(cfg appendConfig) {
 
 func addSuffix(cfg appendConfig) {
 	for i := cfg.start; i < cfg.stop; i++ {
-		newOffset := int(cfg.off0[i]) + (i-1)*len(cfg.lit)
-		if i == 0 {
-			newOffset = 0
-		}
+		newOffset := int(cfg.off0[i]) + (i)*len(cfg.lit)
+
 		newEnd := newOffset + int(cfg.off0[i+1]-cfg.off0[i]) + len(cfg.lit)
 
 		cfg.off1[i] = int64(newOffset)
