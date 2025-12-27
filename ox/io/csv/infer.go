@@ -19,17 +19,35 @@ const (
 	alphaASCIIUCLCDIff byte = 32
 )
 
-type numType int
+type inferredType int
 
 const (
-	notNum   numType = iota
-	intNum           // 10
-	floatNum         // 10.0
+	// null value (e.g., empty string)
+	null inferredType = iota
+
+	// numeric
+	notNum
+	intNum   // 10
+	floatNum // 10.0
+
+	// date
+	notDate
+	nYearMonthDay // 2006-01-02
+	nMonthDayYear // 01-02-2006
+	nDayMonthYear // 02-01-2006
+	aMonthDayYear // [Jj]an(uary).? 2(nd)?,? 2006
+
+	// boolean
+	notBoolean
+	boolean // true
+
+	// string (default)
+	text
 )
 
-func IsNumeric(b []byte) numType {
+func IsNumeric(b []byte) inferredType {
 	if len(b) == 0 {
-		return notNum
+		return null
 	}
 	if b[0] == dashChar {
 		b = b[1:]
@@ -66,17 +84,10 @@ func IsNumeric(b []byte) numType {
 	return notNum
 }
 
-type dateType int
-
-const (
-	notDate       dateType = iota
-	nYearMonthDay          // 2006-01-02
-	nMonthDayYear          // 01-02-2006
-	nDayMonthYear          // 02-01-2006
-	aMonthDayYear          // [Jj]an(uary).? 2(nd)?,? 2006
-)
-
-func IsDate(b []byte) dateType {
+func IsDate(b []byte) inferredType {
+	if len(b) == 0 {
+		return null
+	}
 	// minimum length of the byte slice should be 10
 	// shortest possible date strings:
 	// - e.g., `01-02-2006` (len 10)
@@ -103,7 +114,7 @@ func IsDate(b []byte) dateType {
 	return notDate
 }
 
-func isNDate(b []byte) dateType {
+func isNDate(b []byte) inferredType {
 	// if sep is on b[4], must be like `2006-01-02`
 	if b[4] == slashChar || b[4] == dashChar {
 		// ensure that b[7] is also sep
@@ -129,7 +140,7 @@ func isNDate(b []byte) dateType {
 	return nMonthDayYear
 }
 
-func isADate(b []byte) dateType {
+func isADate(b []byte) inferredType {
 	// ensure that last 4 bytes are numeric
 	for i := 0; i < 4; i++ {
 		if !isNumericASCII(b[len(b)-i-1]) {
@@ -139,25 +150,17 @@ func isADate(b []byte) dateType {
 	return aMonthDayYear
 }
 
-type boolType int
-
-const (
-	notBool boolType = iota
-	Bool
-	nullBool
-)
-
-func IsBool(b []byte) boolType {
-	var bT boolType
+func IsBool(b []byte) inferredType {
+	var bT inferredType
 
 	switch len(b) {
 	case 0:
-		bT = nullBool
+		bT = null
 	case 1, 4, 5:
 		// first char
 		if b[0] == 'f' || b[0] == 't' || b[0] == 'F' || b[0] == 'T' {
 			if len(b) == 1 {
-				bT = Bool
+				bT = boolean
 			}
 			// `true` and `false` share last char
 			if b[len(b)-1] == 'e' || b[len(b)-1] == 'E' {
@@ -166,7 +169,7 @@ func IsBool(b []byte) boolType {
 					// check `true`
 					if b[1] == 'r' || b[1] == 'R' {
 						if b[2] == 'u' || b[2] == 'U' {
-							bT = Bool
+							bT = boolean
 						}
 					}
 				case 5:
@@ -174,7 +177,7 @@ func IsBool(b []byte) boolType {
 					if b[1] == 'a' || b[1] == 'A' {
 						if b[2] == 'l' || b[2] == 'L' {
 							if b[3] == 's' || b[3] == 'S' {
-								bT = Bool
+								bT = boolean
 							}
 						}
 					}
@@ -183,7 +186,7 @@ func IsBool(b []byte) boolType {
 			}
 		}
 	default:
-		bT = notBool
+		bT = notBoolean
 	}
 	return bT
 }
