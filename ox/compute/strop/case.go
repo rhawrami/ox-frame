@@ -38,7 +38,7 @@ func SwapCaseASCII(x *vector.StringVector) *vector.StringVector {
 func changeCaseASCII(x *vector.StringVector, opFn func(x *vector.StringVector, start, stop int)) *vector.StringVector {
 	newVec := x.DeepCopy()
 
-	chunkSize := compute.NumWorkers / newVec.Len()
+	chunkSize := newVec.Len() / compute.NumWorkers
 
 	var wg sync.WaitGroup
 	wg.Add(compute.NumWorkers)
