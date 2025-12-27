@@ -139,6 +139,55 @@ func isADate(b []byte) dateType {
 	return aMonthDayYear
 }
 
+type boolType int
+
+const (
+	notBool boolType = iota
+	Bool
+	nullBool
+)
+
+func IsBool(b []byte) boolType {
+	var bT boolType
+
+	switch len(b) {
+	case 0:
+		bT = nullBool
+	case 1, 4, 5:
+		// first char
+		if b[0] == 'f' || b[0] == 't' || b[0] == 'F' || b[0] == 'T' {
+			if len(b) == 1 {
+				bT = Bool
+			}
+			// `true` and `false` share last char
+			if b[len(b)-1] == 'e' || b[len(b)-1] == 'E' {
+				switch len(b) {
+				case 4:
+					// check `true`
+					if b[1] == 'r' || b[1] == 'R' {
+						if b[2] == 'u' || b[2] == 'U' {
+							bT = Bool
+						}
+					}
+				case 5:
+					// check `false`
+					if b[1] == 'a' || b[1] == 'A' {
+						if b[2] == 'l' || b[2] == 'L' {
+							if b[3] == 's' || b[3] == 'S' {
+								bT = Bool
+							}
+						}
+					}
+				default:
+				}
+			}
+		}
+	default:
+		bT = notBool
+	}
+	return bT
+}
+
 func isAlphaASCII(b byte) bool {
 	return (b >= alphaASCIIUCMin && b <= alphaASCIIUCMax) || (b >= alphaASCIILCMin && b <= alphaASCIILCMax)
 }
