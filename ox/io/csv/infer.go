@@ -19,6 +19,114 @@ const (
 	alphaASCIIUCLCDIff byte = 32
 )
 
+func newColInferrer(cName string) *colInferrer {
+	tally := newInferenceTally()
+	return &colInferrer{
+		cName: cName,
+		tally: tally,
+	}
+}
+
+type colInferrer struct {
+	cName     string
+	tally     inferenceTally
+	valLenMin int
+	valLenMax int
+	valLenAvg float32
+	nSample   int
+}
+
+func (c *colInferrer) updateStatistics(b []byte) {
+	// incr sample size
+	c.nSample += 1
+	// update inferenceTally
+	t := inferType(b)
+	c.tally.updateTally(t)
+
+	// value length statistics
+	c.updateValLenStatistics(b)
+}
+
+func (c *colInferrer) updateValLenStatistics(b []byte) {
+	if c.nSample == 1 {
+		c.valLenAvg = float32(len(b))
+		c.valLenMin = len(b)
+		c.valLenMax = len(b)
+		return
+	}
+	if len(b) < c.valLenMin {
+		c.valLenMin = len(b)
+	}
+	if len(b) > c.valLenMax {
+		c.valLenMax = len(b)
+	}
+	c.valLenAvg = (c.valLenAvg*float32(c.nSample-1) + float32(len(b))) / float32(c.nSample)
+}
+
+func inferType(b []byte) inferredType {
+	// in order, check:
+	// Null (e.g., len 0)
+	// Numeric
+	// Date
+	// Boolean
+	// String as default
+
+	if len(b) == 0 {
+		return null
+	}
+
+	switch IsNumeric(b) {
+	case intNum:
+		return intNum
+	case floatNum:
+		return floatNum
+	default:
+		//
+	}
+
+	switch IsDate(b) {
+	case nYearMonthDay:
+		return nYearMonthDay
+	case nMonthDayYear:
+		return nMonthDayYear
+	case nDayMonthYear:
+		return nDayMonthYear
+	case aMonthDayYear:
+		return aMonthDayYear
+	default:
+		//
+	}
+
+	switch IsBool(b) {
+	case boolean:
+		return boolean
+	default:
+		//
+	}
+
+	return strDefault
+}
+
+type inferenceTally map[inferredType]int
+
+func (t inferenceTally) updateTally(i inferredType) {
+	t[i] += 1
+}
+
+func newInferenceTally() inferenceTally {
+	return inferenceTally{
+		null:          0,
+		intNum:        0,
+		floatNum:      0,
+		nYearMonthDay: 0,
+		nMonthDayYear: 0,
+		nDayMonthYear: 0,
+		aMonthDayYear: 0,
+		boolean:       0,
+		strDefault:    0,
+	}
+}
+
 type inferredType int
 
 const (
@@ -42,13 +150,10 @@ const (
 	boolean // true
 
 	// string (default)
-	text
+	strDefault
 )
 
 func IsNumeric(b []byte) inferredType {
-	if len(b) == 0 {
-		return null
-	}
 	if b[0] == dashChar {
 		b = b[1:]
 	}
@@ -85,9 +190,6 @@ func IsNumeric(b []byte) inferredType {
 }
 
 func IsDate(b []byte) inferredType {
-	if len(b) == 0 {
-		return null
-	}
 	// minimum length of the byte slice should be 10
 	// shortest possible date strings:
 	// - e.g., `01-02-2006` (len 10)
@@ -154,8 +256,6 @@ func IsBool(b []byte) inferredType {
 	var bT inferredType
 
 	switch len(b) {
-	case 0:
-		bT = null
 	case 1, 4, 5:
 		// first char
 		if b[0] == 'f' || b[0] == 't' || b[0] == 'F' || b[0] == 'T' {
