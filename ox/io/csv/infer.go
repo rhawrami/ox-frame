@@ -37,6 +37,40 @@ type colInferrer struct {
 	nSample   int
 }
 
+func (c *colInferrer) predictParser() func([]byte) parsedRes {
+	switch c.predictType() {
+	case intNum:
+		const i32MaxLen = 10
+		if c.valLenMax < (i32MaxLen) {
+			return bToInt32
+		}
+		return bToInt64
+
+	case floatNum:
+		// come back for float32 vs float64 impl
+		return bToFloat64
+
+	case nYearMonthDay:
+		return bToNYearMonthDay
+	case nMonthDayYear:
+		return bToNMonthDayYear
+	case nDayMonthYear:
+		return bToNDayMonthYear
+	case aMonthDayYearLong:
+		return bToAMonthDayYearLong
+	case aMonthDayYearShort:
+		return bToAMonthDayYearShort
+
+	case boolean:
+		return bToBool
+
+	case strDefault:
+		return bToStr
+	}
+
+	return bToStr
+}
+
 // predictType makes a final prediction for the type of a column
 func (c *colInferrer) predictType() inferredType {
 	var (
