@@ -2,6 +2,7 @@ package csv
 
 const (
 	dashChar   byte = '-'
+	plusChar   byte = '+'
 	slashChar  byte = '/'
 	spaceChar  byte = ' '
 	decPntChar byte = '.'
@@ -12,11 +13,10 @@ const (
 	numericASCIILower byte = '0'
 	numericASCIIUpper byte = '9'
 
-	alphaASCIIUCMin    byte = 'A'
-	alphaASCIIUCMax    byte = 'Z'
-	alphaASCIILCMin    byte = 'a'
-	alphaASCIILCMax    byte = 'z'
-	alphaASCIIUCLCDIff byte = 32
+	alphaASCIIUCMin byte = 'A'
+	alphaASCIIUCMax byte = 'Z'
+	alphaASCIILCMin byte = 'a'
+	alphaASCIILCMax byte = 'z'
 )
 
 func newColInferrer(cName string) *colInferrer {
@@ -27,13 +27,64 @@ func newColInferrer(cName string) *colInferrer {
 	}
 }
 
+// colInferrer manages inference from a column in a CSV
 type colInferrer struct {
 	cName     string
 	tally     inferenceTally
 	valLenMin int
 	valLenMax int
-	valLenAvg float32
+	valLenSum int
 	nSample   int
+}
+
+// predictType makes a final prediction for the type of a column
+func (c *colInferrer) predictType() inferredType {
+	var (
+		firstPred, secondPred           inferredType = strDefault, strDefault
+		firstPredShare, secondPredShare float32      = 0, 0
+	)
+
+	// get shares
+	c.tally.normalize(float32(c.nSample))
+
+	for k, kShare := range c.tally {
+		if kShare > secondPredShare {
+			if kShare > firstPredShare {
+				prevFirstPred := firstPred
+				prevFirstPredShare := firstPredShare
+				firstPred = k
+				firstPredShare = kShare
+				if prevFirstPredShare > secondPredShare {
+					secondPred = prevFirstPred
+					secondPredShare = prevFirstPredShare
+				}
+				continue
+			}
+			secondPred = k
+			secondPredShare = kShare
+		}
+	}
+
+	const SeventyFivePerc float32 = 0.75
+	if firstPredShare >= SeventyFivePerc && firstPred != null {
+		return firstPred
+	}
+
+	const FiftyPerc, TwentyFivePerc float32 = 0.50, 0.25
+	if firstPredShare >= FiftyPerc && firstPred != null {
+		if secondPred != null && secondPredShare >= TwentyFivePerc {
+			// deal with common cases
+
+			// numeric mixture -> use float
+			if (firstPred == floatNum && secondPred == intNum) || (firstPred == intNum && secondPred == floatNum) {
+				return floatNum
+			}
+		}
+		return firstPred
+	}
+
+	// default to string
+	return strDefault
 }
 
 func (c *colInferrer) updateStatistics(b []byte) {
@@ -49,7 +100,7 @@ func (c *colInferrer) updateStatistics(b []byte) {
 
 func (c *colInferrer) updateValLenStatistics(b []byte) {
 	if c.nSample == 1 {
-		c.valLenAvg = float32(len(b))
+		c.valLenSum = len(b)
 		c.valLenMin = len(b)
 		c.valLenMax = len(b)
 		return
@@ -60,9 +111,10 @@ func (c *colInferrer) updateValLenStatistics(b []byte) {
 	if len(b) > c.valLenMax {
 		c.valLenMax = len(b)
 	}
-	c.valLenAvg = (c.valLenAvg*float32(c.nSample-1) + float32(len(b))) / float32(c.nSample)
+	c.valLenSum += len(b)
 }
 
+// inferType infers the likely type of an input
 func inferType(b []byte) inferredType {
 	// in order, check:
 	// Null (e.g., len 0)
@@ -75,7 +127,7 @@ func inferType(b []byte) inferredType {
 		return null
 	}
 
-	switch IsNumeric(b) {
+	switch isNumeric(b) {
 	case intNum:
 		return intNum
 	case floatNum:
@@ -84,20 +136,22 @@ func inferType(b []byte) inferredType {
 		//
 	}
 
-	switch IsDate(b) {
+	switch isDate(b) {
 	case nYearMonthDay:
 		return nYearMonthDay
 	case nMonthDayYear:
 		return nMonthDayYear
 	case nDayMonthYear:
 		return nDayMonthYear
-	case aMonthDayYear:
-		return aMonthDayYear
+	case aMonthDayYearLong:
+		return aMonthDayYearLong
+	case aMonthDayYearShort:
+		return aMonthDayYearShort
 	default:
 		//
 	}
 
-	switch IsBool(b) {
+	switch isBool(b) {
 	case boolean:
 		return boolean
 	default:
@@ -107,7 +161,14 @@ func inferType(b []byte) inferredType {
 	return strDefault
 }
 
-type inferenceTally map[inferredType]int
+// inferenceTally keeps a tally of inferred type for a column
+type inferenceTally map[inferredType]float32
+
+func (t inferenceTally) normalize(n float32) {
+	for k, v := range t {
+		t[k] = v / n
+	}
+}
 
 func (t inferenceTally) updateTally(i inferredType) {
 	t[i] += 1
@@ -115,22 +176,23 @@ func (t inferenceTally) updateTally(i inferredType) {
 
 func newInferenceTally() inferenceTally {
 	return inferenceTally{
-		null:          0,
-		intNum:        0,
-		floatNum:      0,
-		nYearMonthDay: 0,
-		nMonthDayYear: 0,
-		nDayMonthYear: 0,
-		aMonthDayYear: 0,
-		boolean:       0,
-		strDefault:    0,
+		null:               0,
+		intNum:             0,
+		floatNum:           0,
+		nYearMonthDay:      0,
+		nMonthDayYear:      0,
+		nDayMonthYear:      0,
+		aMonthDayYearLong:  0,
+		aMonthDayYearShort: 0,
+		boolean:            0,
+		strDefault:         0,
 	}
 }
 
 type inferredType int
 
 const (
-	// null value (e.g., empty string)
+	// null value (e.g., empty slice)
 	null inferredType = iota
 
 	// numeric
@@ -140,10 +202,11 @@ const (
 
 	// date
 	notDate
-	nYearMonthDay // 2006-01-02
-	nMonthDayYear // 01-02-2006
-	nDayMonthYear // 02-01-2006
-	aMonthDayYear // [Jj]an(uary).? 2(nd)?,? 2006
+	nYearMonthDay      // 2006-01-02
+	nMonthDayYear      // 01-02-2006
+	nDayMonthYear      // 02-01-2006
+	aMonthDayYearLong  // January 2, 2006
+	aMonthDayYearShort // Jan 2, 2006
 
 	// boolean
 	notBoolean
@@ -153,7 +216,8 @@ const (
 	strDefault
 )
 
-func IsNumeric(b []byte) inferredType {
+// isNumeric determines if an input is likely a numeric type
+func isNumeric(b []byte) inferredType {
 	if b[0] == dashChar {
 		b = b[1:]
 	}
@@ -163,7 +227,7 @@ func IsNumeric(b []byte) inferredType {
 	foundDecPnt := false
 
 	for i, v := range b {
-		if v >= numericASCIILower && v <= numericASCIIUpper {
+		if isNumericASCII(v) {
 			foundNum = true
 			continue
 		}
@@ -189,7 +253,8 @@ func IsNumeric(b []byte) inferredType {
 	return notNum
 }
 
-func IsDate(b []byte) inferredType {
+// isDate determines if an input is likely a date type
+func isDate(b []byte) inferredType {
 	// minimum length of the byte slice should be 10
 	// shortest possible date strings:
 	// - e.g., `01-02-2006` (len 10)
@@ -249,10 +314,18 @@ func isADate(b []byte) inferredType {
 			return notDate
 		}
 	}
-	return aMonthDayYear
+
+	// check byte 3 for space or character
+	// in case of abbreviated month, byte 3 will be ' ', EXCEPT FOR `May`
+	if b[3] == spaceChar && b[3] != 'y' {
+		return aMonthDayYearShort
+	}
+
+	return aMonthDayYearLong
 }
 
-func IsBool(b []byte) inferredType {
+// isBool determines if an input is likely a boolean type
+func isBool(b []byte) inferredType {
 	var bT inferredType
 
 	switch len(b) {
