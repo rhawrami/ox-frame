@@ -1,14 +1,20 @@
 package csv
 
+import (
+	"io"
+	"os"
+)
+
 const (
-	dashChar   byte = '-'
-	plusChar   byte = '+'
-	slashChar  byte = '/'
-	spaceChar  byte = ' '
-	decPntChar byte = '.'
-	percChar   byte = '%'
-	ucEChar    byte = 'E'
-	lcEChar    byte = 'e'
+	dashChar     byte = '-'
+	plusChar     byte = '+'
+	slashChar    byte = '/'
+	spaceChar    byte = ' '
+	dblQuoteChar byte = '"'
+	decPntChar   byte = '.'
+	percChar     byte = '%'
+	ucEChar      byte = 'E'
+	lcEChar      byte = 'e'
 
 	numericASCIILower byte = '0'
 	numericASCIIUpper byte = '9'
@@ -18,6 +24,51 @@ const (
 	alphaASCIILCMin byte = 'a'
 	alphaASCIILCMax byte = 'z'
 )
+
+type csvInferrer struct {
+	file         *os.File
+	colInferrers []*colInferrer
+	colNames     []byte
+}
+
+func GetHeader(fName string, sepChar byte, newLineChar byte) ([][]byte, error) {
+	file, err := os.Open(fName)
+	if err != nil {
+		return nil, err
+	}
+
+	// assume 10 cols, each col name is 7 bytes on average => 79 bytes (50 + nSepChars) for header
+	const avgHeaderLen int = 1_000
+	const avgNCols int = 10
+	buffer := make([]byte, avgHeaderLen)
+
+	n, err := file.ReadAt(buffer, 0)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	var colNames [][]byte = make([][]byte, 0, avgNCols)
+	var withinQuote bool = false
+	var nameStartsAt int = 0
+
+	for i := 0; i < len(buffer[:n]); i++ {
+		if buffer[i] == sepChar && !withinQuote {
+			colNames = append(colNames, buffer[nameStartsAt:i])
+			nameStartsAt = i + 1
+			continue
+		}
+		if buffer[i] == dblQuoteChar {
+			withinQuote = !withinQuote
+			continue
+		}
+		if buffer[i] == newLineChar && !withinQuote {
+			colNames = append(colNames, buffer[nameStartsAt:i])
+			break
+		}
+	}
+
+	return colNames, nil
+}
 
 func newColInferrer(cName string) *colInferrer {
 	tally := newInferenceTally()
