@@ -1,8 +1,8 @@
 package frame
 
 import (
-	"github.com/rhawrami/ox-frame/ox/dtype"
-	"github.com/rhawrami/ox-frame/ox/vector"
+	"github.com/rhawrami/uz-frame/uz/dtype"
+	"github.com/rhawrami/uz-frame/uz/vector"
 )
 
 type Column struct {

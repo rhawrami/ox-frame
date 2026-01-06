@@ -1,3 +1,3 @@
-module github.com/rhawrami/ox-frame
+module github.com/rhawrami/uz-frame
 
 go 1.25.4

@@ -3,7 +3,7 @@ package vector
 import (
 	"time"
 
-	"github.com/rhawrami/ox-frame/ox/dtype"
+	"github.com/rhawrami/uz-frame/uz/dtype"
 )
 
 const secsInOneDay int64 = 60 * 60 * 24

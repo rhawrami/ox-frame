@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/rhawrami/ox-frame/ox/io/csv"
+	"github.com/rhawrami/uz-frame/uz/io/csv"
 )
 
 func main() {

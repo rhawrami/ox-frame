@@ -3,8 +3,8 @@ package strop
 import (
 	"sync"
 
-	"github.com/rhawrami/ox-frame/ox/compute"
-	"github.com/rhawrami/ox-frame/ox/vector"
+	"github.com/rhawrami/uz-frame/uz/compute"
+	"github.com/rhawrami/uz-frame/uz/vector"
 )
 
 // AddPrefix adds a prefix string (as byte slice input) to each string in a StringVector

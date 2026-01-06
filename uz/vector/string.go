@@ -1,6 +1,6 @@
 package vector
 
-import "github.com/rhawrami/ox-frame/ox/dtype"
+import "github.com/rhawrami/uz-frame/uz/dtype"
 
 // type StringVector represents a String Vector.
 //

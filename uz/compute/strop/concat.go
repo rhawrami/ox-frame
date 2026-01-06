@@ -3,8 +3,8 @@ package strop
 import (
 	"sync"
 
-	"github.com/rhawrami/ox-frame/ox/compute"
-	"github.com/rhawrami/ox-frame/ox/vector"
+	"github.com/rhawrami/uz-frame/uz/compute"
+	"github.com/rhawrami/uz-frame/uz/vector"
 )
 
 // Concat concatenates two StringVectors element-wise, with a byte slice separator

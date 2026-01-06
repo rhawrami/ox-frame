@@ -3,8 +3,8 @@ package numop
 import (
 	"sync"
 
-	"github.com/rhawrami/ox-frame/ox/compute"
-	"github.com/rhawrami/ox-frame/ox/vector"
+	"github.com/rhawrami/uz-frame/uz/compute"
+	"github.com/rhawrami/uz-frame/uz/vector"
 )
 
 // AddVec returns the element-wise sum of two NumericVectors of type T

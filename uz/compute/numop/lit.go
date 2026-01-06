@@ -4,8 +4,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/rhawrami/ox-frame/ox/compute"
-	"github.com/rhawrami/ox-frame/ox/vector"
+	"github.com/rhawrami/uz-frame/uz/compute"
+	"github.com/rhawrami/uz-frame/uz/vector"
 )
 
 // AddLit returns the element-wise sum of a NumericVector of type T and literal value of type T

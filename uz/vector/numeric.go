@@ -1,7 +1,7 @@
 package vector
 
 import (
-	"github.com/rhawrami/ox-frame/ox/dtype"
+	"github.com/rhawrami/uz-frame/uz/dtype"
 )
 
 // type Numeric includes all Go primitive numeric types
