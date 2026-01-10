@@ -13,6 +13,7 @@ type UInt8 struct{}
 func (x UInt8) Type() LogicalType { return UINT8 }
 func (x UInt8) String() string    { return "uint8" }
 func (x UInt8) BitsReq() int      { return 8 }
+func (x UInt8) BytesReq() int     { return 1 }
 
 // UInt16 represents an 16-bit unsigned integer
 type UInt16 struct{}
@@ -20,6 +21,7 @@ type UInt16 struct{}
 func (x UInt16) Type() LogicalType { return UINT16 }
 func (x UInt16) String() string    { return "uint16" }
 func (x UInt16) BitsReq() int      { return 16 }
+func (x UInt16) BytesReq() int     { return 2 }
 
 // UInt32 represents an 32-bit unsigned integer
 type UInt32 struct{}
@@ -27,6 +29,7 @@ type UInt32 struct{}
 func (x UInt32) Type() LogicalType { return UINT32 }
 func (x UInt32) String() string    { return "uint32" }
 func (x UInt32) BitsReq() int      { return 32 }
+func (x UInt32) BytesReq() int     { return 4 }
 
 // UInt64 represents an 64-bit unsigned integer
 type UInt64 struct{}
@@ -34,6 +37,7 @@ type UInt64 struct{}
 func (x UInt64) Type() LogicalType { return UINT64 }
 func (x UInt64) String() string    { return "uint64" }
 func (x UInt64) BitsReq() int      { return 64 }
+func (x UInt64) BytesReq() int     { return 8 }
 
 // Int8 represents an 8-bit unsigned integer
 type Int8 struct{}
@@ -41,6 +45,7 @@ type Int8 struct{}
 func (x Int8) Type() LogicalType { return INT8 }
 func (x Int8) String() string    { return "int8" }
 func (x Int8) BitsReq() int      { return 8 }
+func (x Int8) BytesReq() int     { return 1 }
 
 // Int16 represents an 16-bit unsigned integer
 type Int16 struct{}
@@ -48,6 +53,7 @@ type Int16 struct{}
 func (x Int16) Type() LogicalType { return INT16 }
 func (x Int16) String() string    { return "int16" }
 func (x Int16) BitsReq() int      { return 16 }
+func (x Int16) BytesReq() int     { return 2 }
 
 // Int32 represents an 32-bit unsigned integer
 type Int32 struct{}
@@ -55,6 +61,7 @@ type Int32 struct{}
 func (x Int32) Type() LogicalType { return INT32 }
 func (x Int32) String() string    { return "int32" }
 func (x Int32) BitsReq() int      { return 32 }
+func (x Int32) BytesReq() int     { return 4 }
 
 // Int64 represents an 64-bit unsigned integer
 type Int64 struct{}
@@ -62,6 +69,7 @@ type Int64 struct{}
 func (x Int64) Type() LogicalType { return INT64 }
 func (x Int64) String() string    { return "int64" }
 func (x Int64) BitsReq() int      { return 64 }
+func (x Int64) BytesReq() int     { return 8 }
 
 // Float32 represents a 32-bit floating point
 type Float32 struct{}
@@ -69,6 +77,7 @@ type Float32 struct{}
 func (x Float32) Type() LogicalType { return FLOAT32 }
 func (x Float32) String() string    { return "float32" }
 func (x Float32) BitsReq() int      { return 32 }
+func (x Float32) BytesReq() int     { return 4 }
 
 // Float64 represents a 64-bit floating point
 type Float64 struct{}
@@ -76,6 +85,7 @@ type Float64 struct{}
 func (x Float64) Type() LogicalType { return FLOAT64 }
 func (x Float64) String() string    { return "float64" }
 func (x Float64) BitsReq() int      { return 64 }
+func (x Float64) BytesReq() int     { return 8 }
 
 // String represents a string
 type String struct{}
@@ -89,4 +99,5 @@ type Date struct{}
 
 func (x Date) Type() LogicalType { return DATE }
 func (x Date) String() string    { return "date" }
-func (x Date) BitsReq() int      { return 32 } // come back to this
+func (x Date) BitsReq() int      { return 32 }
+func (x Date) BytesReq() int     { return 4 }
