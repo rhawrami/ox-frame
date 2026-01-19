@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"fmt"
 	"io"
 	"os"
 )
@@ -25,46 +26,145 @@ const (
 	alphaASCIILCMax byte = 'z'
 )
 
-type csvInferrer struct {
-	file         *os.File
-	colInferrers []*colInferrer
-	colNames     []byte
-}
-
-func GetHeader(fName string, sepChar byte, newLineChar byte) ([][]byte, error) {
-	file, err := os.Open(fName)
+func NewCSVInferrer(fileName string, sepChar byte, newLineChar byte) (*CSVInferrer, error) {
+	file, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	// assume 10 cols, each col name is 7 bytes on average => 79 bytes (50 + nSepChars) for header
-	const avgHeaderLen int = 1_000
-	const avgNCols int = 10
-	buffer := make([]byte, avgHeaderLen)
-
-	n, err := file.ReadAt(buffer, 0)
-	if err != nil && err != io.EOF {
+	colNames, err := getHeader(file, sepChar, newLineChar)
+	if err != nil {
 		return nil, err
 	}
 
-	var colNames [][]byte = make([][]byte, 0, avgNCols)
-	var withinQuote bool = false
-	var nameStartsAt int = 0
+	colInferrers := make([]*colInferrer, len(colNames))
+	for i := 0; i < len(colInferrers); i++ {
+		colInferrers[i] = newColInferrer(colNames[i])
+	}
 
-	for i := 0; i < len(buffer[:n]); i++ {
-		if buffer[i] == sepChar && !withinQuote {
-			colNames = append(colNames, buffer[nameStartsAt:i])
-			nameStartsAt = i + 1
-			continue
-		}
-		if buffer[i] == dblQuoteChar {
-			withinQuote = !withinQuote
-			continue
-		}
-		if buffer[i] == newLineChar && !withinQuote {
-			colNames = append(colNames, buffer[nameStartsAt:i])
+	return &CSVInferrer{file: file, colInferrers: colInferrers, colNames: colNames}, nil
+}
+
+type CSVInferrer struct {
+	file         *os.File
+	colInferrers []*colInferrer
+	colNames     []string
+}
+
+func (c *CSVInferrer) Infer(maxRows int, sepChar, newLineChar byte) (*CSVSchema, error) {
+	buffer := make([]byte, 4_096)
+
+	var (
+		withinQuote   bool   = false
+		hitEOF        bool   = false
+		entryStartsAt int    = 0
+		off           int64  = 0
+		partialEntry  []byte = []byte{}
+		onRow         int    = 0
+		onCol         int    = 0
+	)
+
+	for onRow < maxRows {
+		if hitEOF {
 			break
 		}
+		copy(buffer[:len(partialEntry)], partialEntry)
+		n, err := c.file.ReadAt(buffer[len(partialEntry):], off)
+		if err != nil {
+			if err == io.EOF {
+				hitEOF = true
+			} else {
+				return nil, err
+			}
+		}
+		if n == 0 {
+			break
+		}
+		n += len(partialEntry)
+
+		for i := 0; i < n; i++ {
+			if buffer[i] == sepChar && !withinQuote {
+				c.colInferrers[onCol].updateStatistics(buffer[entryStartsAt:i])
+				entryStartsAt = i + 1
+				onCol++
+				continue
+			}
+			if buffer[i] == dblQuoteChar {
+				withinQuote = !withinQuote
+				continue
+			}
+			if buffer[i] == newLineChar && !withinQuote {
+				c.colInferrers[onCol].updateStatistics(buffer[entryStartsAt:i])
+				entryStartsAt = i + 1
+				onCol = 0
+				onRow++
+				continue
+			}
+		}
+
+		copy(partialEntry, buffer[entryStartsAt:n])
+		entryStartsAt = 0
+		off += int64(n)
+	}
+	cSchemas := make([]*colSchema, len(c.colNames))
+	for i, v := range c.colInferrers {
+		fmt.Printf("%s => %s\n", c.colNames[i], strInferredType(v.predictType()))
+		cSchemas[i] = &colSchema{
+			cName:   c.colNames[i],
+			cType:   v.predictType(),
+			cParser: v.predictParser(),
+		}
+	}
+
+	return &CSVSchema{cols: cSchemas}, nil
+}
+
+func getHeader(file *os.File, sepChar byte, newLineChar byte) ([]string, error) {
+	const avgHeaderLen int = 128
+	const avgNCols int = 10
+
+	buffer := make([]byte, avgHeaderLen)
+	colNames := make([]string, 0, avgNCols)
+
+	var (
+		withinQuote    bool   = false // determines if currently within quoted sequence
+		hitNewLineChar bool   = false // determines if hit 'true' newline character
+		nameStartsAt   int    = 0     // defines the current column name offset
+		off            int64  = 0     // defines the current file offset
+		partialName    string = ""    // defines the cut-off column name
+	)
+
+	for !hitNewLineChar {
+		n, err := file.ReadAt(buffer, off)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if n == 0 {
+			break
+		}
+
+		for i := 0; i < n; i++ {
+			if buffer[i] == sepChar && !withinQuote {
+				colNames = append(colNames, partialName+string(buffer[nameStartsAt:i]))
+				nameStartsAt = i + 1
+				partialName = ""
+				continue
+			}
+			if buffer[i] == dblQuoteChar {
+				withinQuote = !withinQuote
+				continue
+			}
+			if buffer[i] == newLineChar && !withinQuote {
+				colNames = append(colNames, partialName+string(buffer[nameStartsAt:i]))
+				hitNewLineChar = true
+				partialName = ""
+				break
+			}
+		}
+
+		partialName = string(buffer[nameStartsAt:n])
+		nameStartsAt = 0
+		off += int64(n)
 	}
 
 	return colNames, nil
@@ -92,7 +192,7 @@ func (c *colInferrer) predictParser() func([]byte) parsedRes {
 	switch c.predictType() {
 	case intNum:
 		const i32MaxLen = 10
-		if c.valLenMax < (i32MaxLen) {
+		if c.valLenMax < i32MaxLen {
 			return bToInt32
 		}
 		return bToInt64
@@ -301,6 +401,30 @@ const (
 	strDefault
 )
 
+func strInferredType(t inferredType) string {
+	switch t {
+	case intNum:
+		return "int"
+	case floatNum:
+		return "float"
+	case nYearMonthDay:
+		return "nYearMonthDay"
+	case nMonthDayYear:
+		return "nMonthDayYear"
+	case nDayMonthYear:
+		return "nDayMonthYear"
+	case aMonthDayYearLong:
+		return "aMonthDayYearLong"
+	case aMonthDayYearShort:
+		return "aMonthDayYearShort"
+	case boolean:
+		return "boolean"
+	case strDefault:
+		return "strDefault"
+	}
+	return "other"
+}
+
 // isNumeric determines if an input is likely a numeric type
 func isNumeric(b []byte) inferredType {
 	if b[0] == dashChar {
@@ -440,6 +564,7 @@ func isBool(b []byte) inferredType {
 						}
 					}
 				default:
+					bT = notBoolean
 				}
 			}
 		}
