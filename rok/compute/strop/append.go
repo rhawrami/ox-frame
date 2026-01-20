@@ -3,8 +3,8 @@ package strop
 import (
 	"sync"
 
-	"github.com/rhawrami/uz-frame/uz/compute"
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/compute"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 // AddPrefix adds a prefix string (as byte slice input) to each string in a StringVector

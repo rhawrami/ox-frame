@@ -3,7 +3,7 @@ package csv
 import (
 	"time"
 
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 type parsedRes interface {

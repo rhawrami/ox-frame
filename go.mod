@@ -1,3 +1,3 @@
-module github.com/rhawrami/uz-frame
+module github.com/rhawrami/rok-frame
 
 go 1.25.4

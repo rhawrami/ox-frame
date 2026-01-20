@@ -1,7 +1,7 @@
 package vector
 
 import (
-	"github.com/rhawrami/uz-frame/uz/dtype"
+	"github.com/rhawrami/rok-frame/rok/dtype"
 )
 
 // type Numeric includes all Go primitive numeric types

@@ -1,6 +1,6 @@
 package vector
 
-import "github.com/rhawrami/uz-frame/uz/dtype"
+import "github.com/rhawrami/rok-frame/rok/dtype"
 
 // type StringVector represents a String Vector.
 //

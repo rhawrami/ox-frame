@@ -3,7 +3,7 @@ package vector
 import (
 	"time"
 
-	"github.com/rhawrami/uz-frame/uz/dtype"
+	"github.com/rhawrami/rok-frame/rok/dtype"
 )
 
 const secsInOneDay int64 = 60 * 60 * 24

@@ -3,8 +3,8 @@ package numop
 import (
 	"sync"
 
-	"github.com/rhawrami/uz-frame/uz/compute"
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/compute"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 // AddVec returns the element-wise sum of two NumericVectors of type T

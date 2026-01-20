@@ -4,8 +4,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/rhawrami/uz-frame/uz/compute"
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/compute"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 // AddLit returns the element-wise sum of a NumericVector of type T and literal value of type T

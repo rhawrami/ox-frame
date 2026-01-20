@@ -1,8 +1,8 @@
 package frame
 
 import (
-	"github.com/rhawrami/uz-frame/uz/dtype"
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/dtype"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 type Column struct {

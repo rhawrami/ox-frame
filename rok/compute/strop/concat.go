@@ -3,8 +3,8 @@ package strop
 import (
 	"sync"
 
-	"github.com/rhawrami/uz-frame/uz/compute"
-	"github.com/rhawrami/uz-frame/uz/vector"
+	"github.com/rhawrami/rok-frame/rok/compute"
+	"github.com/rhawrami/rok-frame/rok/vector"
 )
 
 // Concat concatenates two StringVectors element-wise, with a byte slice separator
